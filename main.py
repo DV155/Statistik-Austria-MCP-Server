@@ -18,7 +18,18 @@ async def fetch_dataset_json(dataset_id: str) -> dict:
         result = (await client.get(url))
         result.raise_for_status()
         try:
-            return result.json()
+            raw =  result.json()
+            att = raw["extras"]["attribute_description"]
+            dimension, measure = []
+            for attribute in att.split(";"):
+                parts = attribute.partition(";")
+                code, label = parts[0], parts[2]
+                if code.startswith("C-"):
+                    target = dimension
+                else:
+                    target = measure
+                target.append({"code": code, "label": label})
+            return {"dimension":dimension, "measure": measure}
         except Exception as e:
             return {"error": str(e)}
 
