@@ -27,8 +27,8 @@ async def fetch_dataset_csv(dataset_id: str) -> dict:
         url = f"{DATA_BASE}/data/{dataset_id}.csv"
         result = (await client.get(url))
         result.raise_for_status()
-        df = pd.read_csv(io.StringIO(result.text), sep=";")
         try:
+            df = pd.read_csv(io.StringIO(result.text), sep=";")
             return {"rows": df.to_dict(orient="records")}
         except Exception as e:
             return {"error": str(e)}
