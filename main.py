@@ -12,6 +12,19 @@ mcp = MCPServer("statistik-austria")
 client = httpx2.AsyncClient(timeout=30)
 DATA_BASE = "https://data.statistik.gv.at"
 
+def parse_att(att: str):
+    dimension, measure = [], []
+    for attribute in att.split(";"):
+        parts = attribute.partition(":")
+        code, label = parts[0], parts[2]
+        if code.startswith("C-"):
+               target = dimension
+        else:
+               target = measure
+        target.append({"code": code, "label": label})
+    return dimension, measure
+     
+
 @mcp.tool()
 async def fetch_dataset_json(dataset_id: str) -> dict:
         url = f"{DATA_BASE}/data/{dataset_id}.json"
@@ -19,16 +32,7 @@ async def fetch_dataset_json(dataset_id: str) -> dict:
         result.raise_for_status()
         try:
             raw =  result.json()
-            att = raw["extras"]["attribute_description"]
-            dimension, measure = [], []
-            for attribute in att.split(";"):
-                parts = attribute.partition(":")
-                code, label = parts[0], parts[2]
-                if code.startswith("C-"):
-                    target = dimension
-                else:
-                    target = measure
-                target.append({"code": code, "label": label})
+            dimension, measure = parse_att(raw["extras"]["attribute_description"])
             return {"dimension":dimension, "measure": measure}
         except Exception as e:
             return {"error": str(e)}
