@@ -20,7 +20,7 @@ async def fetch_dataset_json(dataset_id: str) -> dict:
         try:
             raw =  result.json()
             att = raw["extras"]["attribute_description"]
-            dimension, measure = []
+            dimension, measure = [], []
             for attribute in att.split(";"):
                 parts = attribute.partition(";")
                 code, label = parts[0], parts[2]
