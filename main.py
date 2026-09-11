@@ -41,7 +41,7 @@ async def fetch_dataset_csv(dataset_id: str) -> dict:
         result = (await client.get(url_csv))
         try:
             result.raise_for_status()
-            raw_text = await client.get(url_json).json()
+            raw_text = (await client.get(url_json)).json()
             dimension, measure = parse_att(raw_text["extras"]["attribute_description"])
             df = pd.read_csv(io.StringIO(result.text), sep=";")
             for d in dimension:
