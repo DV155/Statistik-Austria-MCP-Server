@@ -25,10 +25,10 @@ def parse_att(att: str):
 @mcp.tool()
 async def fetch_dataset_json(dataset_id: str) -> dict:
         url = f"{DATA_BASE}/data/{dataset_id}.json"
-        result = (await client.get(url))
+        resp = (await client.get(url))
         try:
-            result.raise_for_status()
-            raw =  result.json()
+            resp.raise_for_status()
+            raw =  resp.json()
             dimension, measure = parse_att(raw["extras"]["attribute_description"])
             return {"dimension":dimension, "measure": measure}
         except Exception as e:
@@ -38,12 +38,12 @@ async def fetch_dataset_json(dataset_id: str) -> dict:
 async def fetch_dataset_csv(dataset_id: str) -> dict:
         url_json = f"{DATA_BASE}/data/{dataset_id}.json"
         url_csv = f"{DATA_BASE}/data/{dataset_id}.csv"
-        result = (await client.get(url_csv))
+        resp = (await client.get(url_csv))
         try:
-            result.raise_for_status()
+            resp.raise_for_status()
             raw_text = (await client.get(url_json)).json()
             dimension, measure = parse_att(raw_text["extras"]["attribute_description"])
-            df = pd.read_csv(io.StringIO(result.text), sep=";")
+            df = pd.read_csv(io.StringIO(resp.text), sep=";")
             for d in dimension:
                  code = d["code"]
                  midcsv = await client.get(f"{DATA_BASE}/data/{dataset_id}_{code}.csv")
