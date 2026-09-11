@@ -1,11 +1,8 @@
 from typing import Any
-import json
 import io
 import pandas as pd
 
 import httpx2
-import requests
-import urllib.request
 from mcp.server import MCPServer
 
 mcp = MCPServer("statistik-austria")
