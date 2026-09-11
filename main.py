@@ -29,8 +29,8 @@ def parse_att(att: str):
 async def fetch_dataset_json(dataset_id: str) -> dict:
         url = f"{DATA_BASE}/data/{dataset_id}.json"
         result = (await client.get(url))
-        result.raise_for_status()
         try:
+            result.raise_for_status()
             raw =  result.json()
             dimension, measure = parse_att(raw["extras"]["attribute_description"])
             return {"dimension":dimension, "measure": measure}
@@ -39,11 +39,20 @@ async def fetch_dataset_json(dataset_id: str) -> dict:
 
 @mcp.tool()
 async def fetch_dataset_csv(dataset_id: str) -> dict:
-        url = f"{DATA_BASE}/data/{dataset_id}.csv"
-        result = (await client.get(url))
-        result.raise_for_status()
+        url_json = f"{DATA_BASE}/data/{dataset_id}.json"
+        url_csv = f"{DATA_BASE}/data/{dataset_id}.csv"
+        result = (await client.get(url_csv))
         try:
+            result.raise_for_status()
+            raw_text = await client.get(url_json).json()
+            dimension, measure = parse_att(raw_text["extras"]["attribute_description"])
             df = pd.read_csv(io.StringIO(result.text), sep=";")
+            for d in dimension:
+                 code = d["code"]
+                 midcsv = await client.get(f"{DATA_BASE}/data/{dataset_id}_{code}.csv")
+                 cdf = pd.read_csv(io.StringIO(midcsv.text), sep=";")
+                 df[code] = df[code].map(dict(zip(cdf.iloc[:, 0], cdf.iloc[:, 1]))).fillna(df[code])
+            df = df.rename(columns={c["code"]: c["label"] for c in dimension + measure})
             return {"rows": df.to_dict(orient="records")}
         except Exception as e:
             return {"error": str(e)}
