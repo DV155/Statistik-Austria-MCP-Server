@@ -24,6 +24,9 @@ def parse_att(att: str):
 
 @mcp.tool()
 async def fetch_dataset_json(dataset_id: str) -> dict:
+        """Return the dimension and measure metadata for an OGD dataset. 
+        dataset_id is the Statistik Austria dataset identifier (e.g. "OGD_vpi86_VPI_2020_1").
+        """
         url = f"{DATA_BASE}/data/{dataset_id}.json"
         resp = (await client.get(url))
         try:
@@ -36,6 +39,9 @@ async def fetch_dataset_json(dataset_id: str) -> dict:
 
 @mcp.tool()
 async def fetch_dataset_csv(dataset_id: str) -> dict:
+        """Fetch an OGD dataset's full data with coded values resolved to human-readable German labels.
+        dataset_id is the Statistik Austria dataset identifier (e.g. "OGD_vpi86_VPI_2020_1").
+        """
         url_json = f"{DATA_BASE}/data/{dataset_id}.json"
         url_csv = f"{DATA_BASE}/data/{dataset_id}.csv"
         resp = (await client.get(url_csv))
