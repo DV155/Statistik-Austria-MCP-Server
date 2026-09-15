@@ -20,6 +20,15 @@ def parse_att(att: str): #helper function to separate attribute descriptions int
                target = measure
         target.append({"code": code, "label": label})
     return dimension, measure
+
+@mcp.resource("ogd://catalog") #To myself: Finish resource. Static overview of what catalog looks like.
+def get_catalog() -> str:
+     """Complete catalog of Statistik Austria datasets, separated into distinct categories. 
+     Each catalog entry identifies a dataset and provides its dataset ID and metadata URL.
+     All datasets available as csv or json. 
+     """
+     return "https://data.statistik.gv.at/web/catalog.jsp"
+
      
 
 @mcp.tool()
