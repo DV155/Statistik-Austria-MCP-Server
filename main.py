@@ -9,7 +9,7 @@ mcp = MCPServer("statistik-austria")
 client = httpx2.AsyncClient(timeout=30)
 DATA_BASE = "https://data.statistik.gv.at"
 
-def parse_att(att: str):
+def parse_att(att: str): #helper function to separate attribute descriptions into dimensions and measures
     dimension, measure = [], []
     for attribute in att.split(";"):
         parts = attribute.partition(":")
