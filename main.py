@@ -1,5 +1,6 @@
 from typing import Any
 import io
+import json
 import pandas as pd
 
 import httpx2
@@ -21,13 +22,25 @@ def parse_att(att: str): #helper function to separate attribute descriptions int
         target.append({"code": code, "label": label})
     return dimension, measure
 
-@mcp.resource("ogd://catalog") #To myself: Finish resource. Static overview of what catalog looks like.
+@mcp.resource("ogd://catalog") 
 def get_catalog() -> str:
      """Complete catalog of Statistik Austria datasets, separated into distinct categories. 
      Each catalog entry identifies a dataset and provides its dataset ID and metadata URL.
      All datasets available as csv or json. 
      """
-     return "https://data.statistik.gv.at/web/catalog.jsp"
+     return json.dumps({"catalog": "https://data.statistik.gv.at/web/catalog.jsp", "categories": [{"name": "Latest data", "anchor": "#collapse_new"},
+            {"name": "High-value datasets / HighValueDataset", "anchor": "#collapse_hvd"},
+            {"name": "Economy and tourism", "anchor": "#collapse0"},
+            {"name": "Education and science", "anchor": "#collapse1"},
+            {"name": "Employment", "anchor": "#collapse2"},
+            {"name": "Environment", "anchor": "#collapse3"},  
+            {"name": "Finance", "anchor": "#collapse4"},
+            {"name": "Geography and planning", "anchor": "#collapse5"},
+            {"name": "Health", "anchor": "#collapse6"},
+            {"name": "Population", "anchor": "#collapse7"}, 
+            {"name": "Society", "anchor": "#collapse8"},
+            {"name": "Transport", "anchor": "#collapse9"},  
+            ]})
 
      
 
