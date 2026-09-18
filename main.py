@@ -40,7 +40,8 @@ def get_catalog() -> str:
             {"name": "Population", "anchor": "#collapse7"}, 
             {"name": "Society", "anchor": "#collapse8"},
             {"name": "Transport", "anchor": "#collapse9"},  
-            ]})
+            ], "metadata_url_pattern": "https://data.statistik.gv.at/web/meta.jsp?dataset={dataset_id}"},
+            ensure_ascii=False, indent=2)
 
      
 
