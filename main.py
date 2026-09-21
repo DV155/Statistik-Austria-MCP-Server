@@ -1,4 +1,5 @@
 from typing import Any
+import re
 import io
 import json
 import pandas as pd
@@ -21,6 +22,10 @@ def parse_att(att: str): #helper function to separate attribute descriptions int
                target = measure
         target.append({"code": code, "label": label})
     return dimension, measure
+
+def parse_html(html: str) -> list[dict]: #helper function to parse html for the dataset search tool
+     return [{"id": m[0], "title": m[1]}
+            for m in re.findall(r'meta\.jsp\?dataset=([^"&]+)"[^>]*>([^<]+)</a>', html)]
 
 @mcp.resource("ogd://catalog") 
 def get_catalog() -> str:
@@ -82,6 +87,15 @@ async def fetch_dataset_csv(dataset_id: str) -> dict:
             return {"rows": df.to_dict(orient="records")}
         except Exception as e:
             return {"error": str(e)}
+
+@mcp.tool()
+async def search_dataset(query: str = "", category: str = "") -> dict: 
+    resp = await client.get("/web/catalog.jsp")
+    try:
+        resp.raise_for_status()
+    except Exception as e:
+        return {"error": str(e)}
+     
 
 
 
