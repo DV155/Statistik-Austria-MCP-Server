@@ -25,7 +25,7 @@ def parse_att(att: str): #helper function to separate attribute descriptions int
 
 def parse_html(html: str) -> list[dict]: #helper function to parse html for the dataset search tool
      return [{"id": m[0], "title": m[1]}
-            for m in re.findall(r'meta\.jsp\?dataset=([^"&]+)"[^>]*>([^<]+)</a>', html)]
+            for m in re.findall(r'meta\.jsp\?dataset=([^"]+)"[^>]*>([^<]+)</a></h4>\s*<p>([^<]+)</p>')]
 
 @mcp.resource("ogd://catalog") 
 def get_catalog() -> str:
