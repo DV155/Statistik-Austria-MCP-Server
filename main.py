@@ -56,8 +56,8 @@ async def fetch_dataset_json(dataset_id: str) -> dict:
         dataset_id is the Statistik Austria dataset identifier (e.g. "OGD_vpi86_VPI_2020_1").
         """
         url = f"{DATA_BASE}/data/{dataset_id}.json"
-        resp = (await client.get(url))
         try:
+            resp = (await client.get(url))
             resp.raise_for_status()
             raw =  resp.json()
             dimension, measure = parse_att(raw["extras"]["attribute_description"])
@@ -93,6 +93,7 @@ async def search_dataset(query: str = "", category: str = "") -> dict:
     resp = await client.get("/web/catalog.jsp")
     try:
         resp.raise_for_status()
+        entries = parse_html(resp.text)
     except Exception as e:
         return {"error": str(e)}
      
