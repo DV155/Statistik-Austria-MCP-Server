@@ -133,7 +133,22 @@ async def search_dataset(query: str = "") -> dict: #TODO: Bring back 'category: 
                    break
         if all_found:
             matches.append((score, entry))
-     
+        matches.sort(key=lambda pair: pair[0], reverse=True)
+
+        results = []
+        for score, entry in matches[:limit]:
+            item = {"id": entry["id"], "title": entry["title"]}
+            desc = entry["desc"]
+            if desc and desc != entry["title"]:
+                if len(desc) > 200:
+                    desc = desc[:200] + "..."
+                item["desc"] = desc
+            results.append(item)
+
+        answer = {"query": query, "total_matches": len(matches), "returned": len(results), "results": results}     
+        if not matches:
+             answer["hint"] = "No matches. Try alternative keywords?"
+        return answer
 
 
 
