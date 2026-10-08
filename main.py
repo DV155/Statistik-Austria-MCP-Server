@@ -97,7 +97,7 @@ async def fetch_dataset_csv(dataset_id: str) -> dict:
             return {"error": str(e)}
 
 @mcp.tool()
-async def search_dataset(query: str = "", category: str = "") -> dict: 
+async def search_dataset(query: str = "") -> dict: #TODO: Bring back 'category: str = "" '
     try:
         resp = await client.get("/web/catalog.jsp")
         resp.raise_for_status()
