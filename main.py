@@ -3,6 +3,7 @@ import re
 import io
 import json
 import pandas as pd
+from html import unescape
 
 import httpx2
 from mcp.server import MCPServer
@@ -25,7 +26,7 @@ def parse_att(att: str): #helper function to separate attribute descriptions int
     return dimension, measure
 
 def parse_html(html: str) -> list[dict]: #helper function to parse html for the dataset search tool
-     return [{"id": m[0], "title": html.unescape(m[1]).strip(), "desc": html.unescape(m[2]).strip(),}
+     return [{"id": m[0], "title": unescape(m[1]).strip(), "desc": unescape(m[2]).strip(),}
             for m in ROW_RE.findall(html)
      ]
 
