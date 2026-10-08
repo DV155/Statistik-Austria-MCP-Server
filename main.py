@@ -104,6 +104,8 @@ async def search_dataset(query: str = "") -> dict: #TODO: Bring back 'category: 
         entries = parse_html(resp.text)
     except Exception as e:
         return {"error": str(e)}
+    if not entries:
+         return {"error": "no dataset found; incorrect input or page structure changed"}
      
 
 
