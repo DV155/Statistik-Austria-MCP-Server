@@ -97,6 +97,8 @@ async def search_dataset(query: str = "", category: str = "") -> dict:
         resp = await client.get("/web/catalog.jsp")
         resp.raise_for_status()
         entries = parse_html(resp.text)
+    except len(entries) == 0:
+         return {"error": "empty list"}
     except Exception as e:
         return {"error": str(e)}
      
