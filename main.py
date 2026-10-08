@@ -13,6 +13,11 @@ DATA_BASE = "https://data.statistik.gv.at"
 client = httpx2.AsyncClient(base_url=DATA_BASE, timeout=30)
 ROW_RE = re.compile(r'meta\.jsp\?dataset=([^"&]+)"[^>]*>([^<]+)</a>\s*<br\s*/?>\s*([^<]*)')
 
+def norm(s: str) -> str: #helper function to convert german-specific letters to common latin alternatives
+     s = s.lower()
+     for a, b in (("ä","ae"),("ö","oe"),("ü","ue"),("ß","ss")):
+          s = s.replace(a, b)
+
 def parse_att(att: str): #helper function to separate attribute descriptions into dimensions and measures
     dimension, measure = [], []
     for attribute in att.split(";"):
