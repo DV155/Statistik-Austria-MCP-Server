@@ -8,8 +8,9 @@ import httpx2
 from mcp.server import MCPServer
 
 mcp = MCPServer("statistik-austria")
-client = httpx2.AsyncClient(timeout=30)
 DATA_BASE = "https://data.statistik.gv.at"
+client = httpx2.AsyncClient(base_url=DATA_BASE, timeout=30)
+ROW_RE = re.compile(r'meta\.jsp\?dataset=([^"&]+)"[^>]*>([^<]+)</a>\s*<br\s*/?>\s*([^<]*)')
 
 def parse_att(att: str): #helper function to separate attribute descriptions into dimensions and measures
     dimension, measure = [], []
@@ -24,8 +25,9 @@ def parse_att(att: str): #helper function to separate attribute descriptions int
     return dimension, measure
 
 def parse_html(html: str) -> list[dict]: #helper function to parse html for the dataset search tool
-     return [{"id": m[0], "title": m[1]}
-            for m in re.findall(r'meta\.jsp\?dataset=([^"]+)"[^>]*>([^<]+)</a></h4>\s*<p>([^<]+)</p>')]
+     return [{"id": m[0], "title": html.unescape(m[1]).strip(), "desc": html.unescape(m[2]).strip(),}
+            for m in ROW_RE.findall(html)
+     ]
 
 @mcp.resource("ogd://catalog") 
 def get_catalog() -> str:
@@ -55,7 +57,7 @@ async def fetch_dataset_json(dataset_id: str) -> dict:
         """Return the dimension and measure metadata for an OGD dataset. 
         dataset_id is the Statistik Austria dataset identifier (e.g. "OGD_vpi86_VPI_2020_1").
         """
-        url = f"{DATA_BASE}/data/{dataset_id}.json"
+        url = f"/data/{dataset_id}.json"
         try:
             resp = (await client.get(url))
             resp.raise_for_status()
@@ -70,8 +72,8 @@ async def fetch_dataset_csv(dataset_id: str) -> dict:
         """Fetch an OGD dataset's full data with coded values resolved to human-readable German labels.
         dataset_id is the Statistik Austria dataset identifier (e.g. "OGD_vpi86_VPI_2020_1").
         """
-        url_json = f"{DATA_BASE}/data/{dataset_id}.json"
-        url_csv = f"{DATA_BASE}/data/{dataset_id}.csv"
+        url_json = f"/data/{dataset_id}.json"
+        url_csv = f"/data/{dataset_id}.csv"
         resp = (await client.get(url_csv))
         try:
             resp.raise_for_status()
@@ -80,7 +82,7 @@ async def fetch_dataset_csv(dataset_id: str) -> dict:
             df = pd.read_csv(io.StringIO(resp.text), sep=";")
             for d in dimension:
                  code = d["code"]
-                 midcsv = await client.get(f"{DATA_BASE}/data/{dataset_id}_{code}.csv")
+                 midcsv = await client.get(f"/data/{dataset_id}_{code}.csv")
                  cdf = pd.read_csv(io.StringIO(midcsv.text), sep=";")
                  df[code] = df[code].map(dict(zip(cdf.iloc[:, 0], cdf.iloc[:, 1]))).fillna(df[code])
             df = df.rename(columns={c["code"]: c["label"] for c in dimension + measure})
