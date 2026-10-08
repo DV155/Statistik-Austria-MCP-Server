@@ -93,8 +93,8 @@ async def fetch_dataset_csv(dataset_id: str) -> dict:
 
 @mcp.tool()
 async def search_dataset(query: str = "", category: str = "") -> dict: 
-    resp = await client.get("/web/catalog.jsp")
     try:
+        resp = await client.get("/web/catalog.jsp")
         resp.raise_for_status()
         entries = parse_html(resp.text)
     except Exception as e:
