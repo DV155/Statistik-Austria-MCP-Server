@@ -106,6 +106,7 @@ async def search_dataset(query: str = "") -> dict: #TODO: Bring back 'category: 
         return {"error": str(e)}
     if not entries:
          return {"error": "no dataset found; incorrect input or page structure changed"}
+    
     unique = {}
     for entry in entries:
         unique[entry["id"]] = entry
@@ -116,6 +117,22 @@ async def search_dataset(query: str = "") -> dict: #TODO: Bring back 'category: 
         if len(word) >= 3:
             words.append(word)
 
+    matches = []
+    for entry in entries:
+        title = norm(entry["title"])
+        rest = norm(entry["desc"] + " " + entry["id"])
+        score = 0
+        all_found = True
+        for word in words:
+              if word in title:
+                   score += 3
+              elif word in rest:
+                   score += 1
+              else:
+                   all_found = False
+                   break
+        if all_found:
+            matches.append((score, entry))
      
 
 
