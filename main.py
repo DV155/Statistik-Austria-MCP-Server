@@ -99,6 +99,10 @@ async def fetch_dataset_csv(dataset_id: str) -> dict:
 
 @mcp.tool()
 async def search_dataset(query: str = "", limit: int = 20) -> dict: #TODO: Bring back 'category: str = "" '
+    """Search the OGD catalog by keyword. Every query word
+  must appear in a result; word parts match too. An empty query returns recently updated datasets.
+  Pass a result's "id" to fetch_dataset_json or fetch_dataset_csv.
+    """
     try:
         resp = await client.get("/web/catalog.jsp")
         resp.raise_for_status()
