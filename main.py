@@ -19,7 +19,13 @@ def norm(s: str) -> str: #helper function to convert german-specific letters to 
           s = s.replace(a, b)
     return s 
 
-def newest_year(title: str) -> str:
+def decode(raw: bytes) -> str: #helper function to avoid decoding errors
+     try:
+          return raw.decode("utf-8")
+     except UnicodeDecodeError:
+          return raw.decode("cp1252")
+
+def newest_year(title: str) -> str: #helper function to get latest year in dataset
     years = re.findall(r"\d{4}", title)
     return max(years, default="")
 
@@ -72,7 +78,7 @@ async def fetch_dataset_json(dataset_id: str) -> dict:
         try:
             resp = (await client.get(url))
             resp.raise_for_status()
-            raw =  resp.json()
+            raw =  json.loads(decode(resp.content)) 
             dimension, measure = parse_att(raw["extras"]["attribute_description"])
             return {"dimension":dimension, "measure": measure}
         except Exception as e:
@@ -88,13 +94,13 @@ async def fetch_dataset_csv(dataset_id: str) -> dict: #TODO: Fix tool breaking o
         resp = (await client.get(url_csv))
         try:
             resp.raise_for_status()
-            raw_text = (await client.get(url_json)).json()
+            raw_text = json.loads(decode((await client.get(url_json)).content))
             dimension, measure = parse_att(raw_text["extras"]["attribute_description"])
-            df = pd.read_csv(io.StringIO(resp.text), sep=";")
+            df = pd.read_csv(io.StringIO(decode(resp.content)), sep=";")
             for d in dimension:
                  code = d["code"]
                  midcsv = await client.get(f"/data/{dataset_id}_{code}.csv")
-                 cdf = pd.read_csv(io.StringIO(midcsv.text), sep=";")
+                 cdf = pd.read_csv(io.StringIO(decode(midcsv.content)), sep=";")
                  df[code] = df[code].map(dict(zip(cdf.iloc[:, 0], cdf.iloc[:, 1]))).fillna(df[code])
             df = df.rename(columns={c["code"]: c["label"] for c in dimension + measure})
             return {"rows": df.to_dict(orient="records")}
