@@ -38,9 +38,9 @@ def parse_html(html: str) -> list[dict]: #helper function to parse html for the 
 
 @mcp.resource("ogd://catalog") 
 def get_catalog() -> str:
-     """Complete catalog of Statistik Austria datasets, separated into distinct categories. 
-     Each catalog entry identifies a dataset and provides its dataset ID and metadata URL.
-     All datasets available as csv or json. 
+     """Overview of the Statistik Austria OGD catalog: its categories with their
+   anchors on the catalog page, and the URL pattern for dataset metadata pages.
+   Use search_dataset to find specific datasets.
      """
      return json.dumps({"catalog": "https://data.statistik.gv.at/web/catalog.jsp", "categories": [{"name": "Latest data", "anchor": "#collapse_new"},
             {"name": "High-value datasets / HighValueDataset", "anchor": "#collapse_hvd"},
