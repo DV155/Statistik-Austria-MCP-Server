@@ -98,7 +98,7 @@ async def fetch_dataset_csv(dataset_id: str) -> dict:
             return {"error": str(e)}
 
 @mcp.tool()
-async def search_dataset(query: str = "") -> dict: #TODO: Bring back 'category: str = "" '
+async def search_dataset(query: str = "", limit: int = 20) -> dict: #TODO: Bring back 'category: str = "" '
     try:
         resp = await client.get("/web/catalog.jsp")
         resp.raise_for_status()
@@ -106,7 +106,7 @@ async def search_dataset(query: str = "") -> dict: #TODO: Bring back 'category: 
     except Exception as e:
         return {"error": str(e)}
     if not entries:
-         return {"error": "no dataset found; incorrect input or page structure changed"}
+         return {"error": "Catalog page loaded but no datasets could be parsed; the page structure may have changed"}
     
     unique = {}
     for entry in entries:
@@ -134,22 +134,22 @@ async def search_dataset(query: str = "") -> dict: #TODO: Bring back 'category: 
                    break
         if all_found:
             matches.append((score, entry))
-        matches.sort(key=lambda pair: pair[0], reverse=True)
+    matches.sort(key=lambda pair: pair[0], reverse=True)
 
-        results = []
-        for score, entry in matches[:limit]:
-            item = {"id": entry["id"], "title": entry["title"]}
-            desc = entry["desc"]
-            if desc and desc != entry["title"]:
-                if len(desc) > 200:
-                    desc = desc[:200] + "..."
-                item["desc"] = desc
-            results.append(item)
+    results = []
+    for score, entry in matches[:limit]:
+        item = {"id": entry["id"], "title": entry["title"]}
+        desc = entry["desc"]
+        if desc and desc != entry["title"]:
+            if len(desc) > 200:
+                desc = desc[:200] + "..."
+            item["desc"] = desc
+        results.append(item)
 
-        answer = {"query": query, "total_matches": len(matches), "returned": len(results), "results": results}     
-        if not matches:
-             answer["hint"] = "No matches. Try alternative keywords?"
-        return answer
+    answer = {"query": query, "total_matches": len(matches), "returned": len(results), "results": results}     
+    if not matches:
+        answer["hint"] = "No matches. Try alternative keywords?"
+    return answer
 
 
 
