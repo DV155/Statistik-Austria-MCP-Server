@@ -79,7 +79,7 @@ async def fetch_dataset_json(dataset_id: str) -> dict:
             return {"error": str(e)}
 
 @mcp.tool()
-async def fetch_dataset_csv(dataset_id: str) -> dict:
+async def fetch_dataset_csv(dataset_id: str) -> dict: #TODO: Fix tool breaking on zip 
         """Fetch an OGD dataset's full data with coded values resolved to human-readable German labels.
         dataset_id is the Statistik Austria dataset identifier (e.g. "OGD_vpi86_VPI_2020_1").
         """
@@ -142,7 +142,8 @@ async def search_dataset(query: str = "", limit: int = 20) -> dict: #TODO: Bring
                    break
         if all_found:
             matches.append((score, entry))
-    matches.sort(key=lambda pair: (pair[0], newest_year(pair[1]["title"])), reverse=True)
+    if words:
+        matches.sort(key=lambda pair: (pair[0], newest_year(pair[1]["title"])), reverse=True)
 
     results = []
     for score, entry in matches[:limit]:
