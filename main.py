@@ -10,7 +10,7 @@ from mcp.server import MCPServer
 
 mcp = MCPServer("statistik-austria")
 DATA_BASE = "https://data.statistik.gv.at"
-client = httpx2.AsyncClient(base_url=DATA_BASE, timeout=30)
+client = httpx2.AsyncClient(base_url=DATA_BASE, timeout=30, headers={"Accept-Language": "en"})
 ROW_RE = re.compile(r'meta\.jsp\?dataset=([^"&]+)"[^>]*>([^<]+)</a>\s*<br\s*/?>\s*([^<]*)')
 
 def norm(s: str) -> str: #helper function to convert german-specific letters to common latin alternatives
