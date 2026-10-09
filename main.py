@@ -142,7 +142,7 @@ async def search_dataset(query: str = "", limit: int = 20) -> dict: #TODO: Bring
                    break
         if all_found:
             matches.append((score, entry))
-    matches.sort(key=lambda pair: pair[0], reverse=True)
+    matches.sort(key=lambda pair: (pair[0], newest_year(pair[1]["title"])), reverse=True)
 
     results = []
     for score, entry in matches[:limit]:
