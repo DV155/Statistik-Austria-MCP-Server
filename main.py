@@ -11,13 +11,17 @@ from mcp.server import MCPServer
 mcp = MCPServer("statistik-austria")
 DATA_BASE = "https://data.statistik.gv.at"
 client = httpx2.AsyncClient(base_url=DATA_BASE, timeout=30, headers={"Accept-Language": "en"})
-ROW_RE = re.compile(r'meta\.jsp\?dataset=([^"&]+)"[^>]*>([^<]+)</a>\s*<br\s*/?>\s*([^<]*)')
+ROW_RE = re.compile(r'meta\.jsp\?dataset=([^"&]+)"[^>]*>([^<]+)</a></h4>\s*<p>([^<]*)</p>')
 
 def norm(s: str) -> str: #helper function to convert german-specific letters to common latin alternatives
     s = s.lower()
     for a, b in (("ä","ae"),("ö","oe"),("ü","ue"),("ß","ss")):
           s = s.replace(a, b)
     return s 
+
+def newest_year(title: str) -> str:
+    years = re.findall(r"\d{4}", title)
+    return max(years, default="")
 
 def parse_att(att: str): #helper function to separate attribute descriptions into dimensions and measures
     dimension, measure = [], []
