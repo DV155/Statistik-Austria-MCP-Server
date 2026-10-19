@@ -46,6 +46,14 @@ def parse_html(html: str) -> list[dict]: #helper function to parse html for the 
             for m in ROW_RE.findall(html)
      ]
 
+def drop_agg(df: pd.DataFrame, column: str, cdf: pd.DataFrame) -> set[str]: #helper: codes in "column" that are totals of components also present in the data
+    if "FK" not in cdf.columns:
+        return set()
+    present = set(df[column].astype(str))
+    children = cdf.dropna(subset=["FK"])
+    covered = set(children.loc[children["code"].astype(str).isin(present), "FK"].astype(str))
+    return set(children.loc[children["code"].astype(str).isin(present), "FK"].astype(str))
+
 @mcp.resource("ogd://catalog") 
 def get_catalog() -> str:
      """Overview of the Statistik Austria OGD catalog: its categories with their
@@ -85,9 +93,13 @@ async def fetch_dataset_json(dataset_id: str) -> dict:
             return {"error": str(e)}
 
 @mcp.tool()
-async def fetch_dataset_csv(dataset_id: str) -> dict: #TODO: Fix tool breaking on zip 
-        """Fetch an OGD dataset's full data with coded values resolved to human-readable German labels.
+async def fetch_dataset_csv(dataset_id: str, offset: int = 0, limit: int = 1000) -> dict: #TODO: Fix tool breaking on zip 
+        """Fetch an OGD dataset's data with coded values resolved to human-readable German labels.
         dataset_id is the Statistik Austria dataset identifier (e.g. "OGD_vpi86_VPI_2020_1").
+        Values are formatted as "label <code>". Each row has an "aggregate" field naming the dimensions in which that row is a total of other rows
+        in the result (empty = detail row). Never sum a row with the rows it totals. 
+        Returns at most `limit` rows starting at `offset` (default 1000, max 5000). 
+        If "truncated" is true, call again with offset = offset + returned to get the next page.
         """
         url_json = f"/data/{dataset_id}.json"
         url_csv = f"/data/{dataset_id}.csv"
@@ -96,14 +108,26 @@ async def fetch_dataset_csv(dataset_id: str) -> dict: #TODO: Fix tool breaking o
             resp.raise_for_status()
             raw_text = json.loads(decode((await client.get(url_json)).content))
             dimension, measure = parse_att(raw_text["extras"]["attribute_description"])
-            df = pd.read_csv(io.StringIO(decode(resp.content)), sep=";")
+            df = pd.read_csv(io.StringIO(decode(resp.content)), sep=";", decimal = ",")
+            flags = {}
             for d in dimension:
-                 code = d["code"]
-                 midcsv = await client.get(f"/data/{dataset_id}_{code}.csv")
-                 cdf = pd.read_csv(io.StringIO(decode(midcsv.content)), sep=";")
-                 df[code] = df[code].map(dict(zip(cdf.iloc[:, 0], cdf.iloc[:, 1]))).fillna(df[code])
+                code = d["code"]
+                midcsv = await client.get(f"/data/{dataset_id}_{code}.csv")
+                cdf = pd.read_csv(io.StringIO(decode(midcsv.content)), sep=";")
+                flags[d["label"]] = df[code].astype(str).isin(drop_agg(df, code, cdf))
+                labels = dict(zip(cdf.iloc[:, 0], cdf.iloc[:, 1]))
+                df[code] = df[code].map(lambda c: f"{labels.get(c, c)} <{c}>")
+            flag_df = pd.DataFrame(flags)
+            df["aggregate"] = flag_df.apply(lambda row: "; ".join(row.index[row]), axis=1)
             df = df.rename(columns={c["code"]: c["label"] for c in dimension + measure})
-            return {"rows": df.to_dict(orient="records")}
+            limit = max(1, min(limit, 5000))
+            page = df.iloc[offset:offset + limit]
+            return {"total_rows": len(df),
+                    "aggregate_rows": int(flag_df.any(axis=1).sum()),
+                    "offset": offset,
+                    "returned": len(page),
+                    "truncated": offset + len(page) < len(df),
+                    "rows": page.to_dict(orient="records")}
         except Exception as e:
             return {"error": str(e)}
 

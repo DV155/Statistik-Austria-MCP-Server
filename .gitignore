@@ -11,3 +11,5 @@ wheels/
 
 #Testing
 test_server.py
+output_check.py
+check_report.csv
