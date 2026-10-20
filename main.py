@@ -108,12 +108,12 @@ async def fetch_dataset_csv(dataset_id: str, offset: int = 0, limit: int = 1000)
             resp.raise_for_status()
             raw_text = json.loads(decode((await client.get(url_json)).content))
             dimension, measure = parse_att(raw_text["extras"]["attribute_description"])
-            df = pd.read_csv(io.StringIO(decode(resp.content)), sep=";", decimal = ",")
+            df = pd.read_csv(io.StringIO(decode(resp.content)), sep=";", decimal = ",", keep_default_na=False, na_values=[""])
             flags = {}
             for d in dimension:
                 code = d["code"]
                 midcsv = await client.get(f"/data/{dataset_id}_{code}.csv")
-                cdf = pd.read_csv(io.StringIO(decode(midcsv.content)), sep=";")
+                cdf = pd.read_csv(io.StringIO(decode(midcsv.content)), sep=";", decimal=",", keep_default_na=False, na_values=[""])
                 flags[d["label"]] = df[code].astype(str).isin(drop_agg(df, code, cdf))
                 labels = dict(zip(cdf.iloc[:, 0], cdf.iloc[:, 1]))
                 df[code] = df[code].map(lambda c: f"{labels.get(c, c)} <{c}>")
