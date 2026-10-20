@@ -125,6 +125,8 @@ async def fetch_dataset_csv(dataset_id: str, offset: int = 0, limit: int = 1000)
             dimension, measure = parse_att(raw_text["extras"]["attribute_description"])
             names = unique_name(dimension + measure)
             df = pd.read_csv(io.StringIO(decode(resp.content)), sep=";", decimal = ",", keep_default_na=False, na_values=[""])
+            if df.empty:
+                return {"total_rows": 0, "rows": [], "note": "The dataset file contains no data rows."}
             flags = {}
             for d in dimension:
                 code = d["code"]
