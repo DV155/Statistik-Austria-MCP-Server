@@ -13,3 +13,5 @@ wheels/
 test_server.py
 output_check.py
 check_report.csv
+ogdext_resources.csv
+inspect_zip.py
