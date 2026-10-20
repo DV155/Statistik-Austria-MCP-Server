@@ -54,6 +54,21 @@ def drop_agg(df: pd.DataFrame, column: str, cdf: pd.DataFrame) -> set[str]: #hel
     covered = set(children.loc[children["code"].astype(str).isin(present), "FK"].astype(str))
     return set(children.loc[children["code"].astype(str).isin(present), "FK"].astype(str))
 
+def no_duplicate(column: list[dict]) -> dict: #helper function which appends code of duplicate labels
+    names, used = {}, set()
+    for c in column:
+        if c["code"] in names:
+              continue
+        label = c["label"].strip()
+        if not label:
+            label = c["code"]
+        if label in used:
+            label = f"{label} <{c['code']}>"
+        used.add(label)
+        names[c["code"]] = label
+    return names
+         
+
 @mcp.resource("ogd://catalog") 
 def get_catalog() -> str:
      """Overview of the Statistik Austria OGD catalog: its categories with their
