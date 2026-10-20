@@ -133,7 +133,7 @@ async def fetch_dataset_csv(dataset_id: str, offset: int = 0, limit: int = 1000)
                 midcsv = await client.get(f"/data/{dataset_id}_{code}.csv")
                 cdf = pd.read_csv(io.StringIO(decode(midcsv.content)), sep=";", decimal=",", keep_default_na=False, na_values=[""])
                 flags[names[code]] = df[code].astype(str).isin(drop_agg(df, code, cdf))
-                labels = dict(zip(cdf.iloc[:, 0], cdf.iloc[:, 1]))
+                labels = {c: " ".join(str(n).split()) for c, n in zip(cdf.iloc[:, 0], cdf.iloc[:, 1])}
                 df[code] = df[code].map(lambda c: f"{labels.get(c, c)} <{c}>")
             flag_df = pd.DataFrame(flags)
             df["aggregate"] = flag_df.apply(lambda row: "; ".join(row.index[row]), axis=1)
