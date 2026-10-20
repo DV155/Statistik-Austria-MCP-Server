@@ -54,7 +54,7 @@ def drop_agg(df: pd.DataFrame, column: str, cdf: pd.DataFrame) -> set[str]: #hel
     covered = set(children.loc[children["code"].astype(str).isin(present), "FK"].astype(str))
     return set(children.loc[children["code"].astype(str).isin(present), "FK"].astype(str))
 
-def no_duplicate(column: list[dict]) -> dict: #helper function which appends code of duplicate labels
+def unique_name(column: list[dict]) -> dict: #helper function which appends code of duplicate labels
     names, used = {}, set()
     for c in column:
         if c["code"] in names:
@@ -123,18 +123,19 @@ async def fetch_dataset_csv(dataset_id: str, offset: int = 0, limit: int = 1000)
             resp.raise_for_status()
             raw_text = json.loads(decode((await client.get(url_json)).content))
             dimension, measure = parse_att(raw_text["extras"]["attribute_description"])
+            names = unique_name(dimension + measure)
             df = pd.read_csv(io.StringIO(decode(resp.content)), sep=";", decimal = ",", keep_default_na=False, na_values=[""])
             flags = {}
             for d in dimension:
                 code = d["code"]
                 midcsv = await client.get(f"/data/{dataset_id}_{code}.csv")
                 cdf = pd.read_csv(io.StringIO(decode(midcsv.content)), sep=";", decimal=",", keep_default_na=False, na_values=[""])
-                flags[d["label"]] = df[code].astype(str).isin(drop_agg(df, code, cdf))
+                flags[names[code]] = df[code].astype(str).isin(drop_agg(df, code, cdf))
                 labels = dict(zip(cdf.iloc[:, 0], cdf.iloc[:, 1]))
                 df[code] = df[code].map(lambda c: f"{labels.get(c, c)} <{c}>")
             flag_df = pd.DataFrame(flags)
             df["aggregate"] = flag_df.apply(lambda row: "; ".join(row.index[row]), axis=1)
-            df = df.rename(columns={c["code"]: c["label"] for c in dimension + measure})
+            df = df.rename(columns=names)
             limit = max(1, min(limit, 5000))
             page = df.iloc[offset:offset + limit]
             return {"total_rows": len(df),
