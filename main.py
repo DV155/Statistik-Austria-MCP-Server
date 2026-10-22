@@ -12,6 +12,7 @@ mcp = MCPServer("statistik-austria")
 DATA_BASE = "https://data.statistik.gv.at"
 client = httpx2.AsyncClient(base_url=DATA_BASE, timeout=30, headers={"Accept-Language": "en"})
 ROW_RE = re.compile(r'meta\.jsp\?dataset=([^"&]+)"[^>]*>([^<]+)</a></h4>\s*<p>([^<]*)</p>')
+PAGE_BUDGET = 250000
 
 def norm(s: str) -> str: #helper function to convert german-specific letters to common latin alternatives
     s = s.lower()
@@ -143,13 +144,16 @@ async def fetch_dataset_csv(dataset_id: str, offset: int = 0, limit: int = 1000)
             df["aggregate"] = flag_df.apply(lambda row: "; ".join(row.index[row]), axis=1)
             df = df.rename(columns=names)
             limit = max(1, min(limit, 5000))
-            page = df.iloc[offset:offset + limit]
+            page = df.iloc[offset:offset + limit].to_dict(orient="records")
+            size = len(json.dumps(rows, ensure_ascii=False).encode())
+            if size > PAGE_BUDGET:
+                rows = rows[:max(1, int(len(rows) * PAGE_BUDGET / size))]
             return {"total_rows": len(df),
                     "aggregate_rows": int(flag_df.any(axis=1).sum()),
                     "offset": offset,
-                    "returned": len(page),
-                    "truncated": offset + len(page) < len(df),
-                    "rows": page.to_dict(orient="records")}
+                    "returned": len(rows),
+                    "truncated": offset + len(rows) < len(df),
+                    "rows": rows}
         except Exception as e:
             return {"error": str(e)}
 
