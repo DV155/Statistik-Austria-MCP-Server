@@ -108,7 +108,7 @@ async def fetch_dataset_json(dataset_id: str) -> dict:
             return {"error": str(e)}
 
 @mcp.tool()
-async def fetch_dataset_csv(dataset_id: str, offset: int = 0, limit: int = 1000) -> dict: #TODO: Fix tool breaking on zip 
+async def fetch_dataset_csv(dataset_id: str, offset: int = 0, limit: int = 1000) -> dict: #TODO: Fix tool breaking on zip (BINNENWAND?)
         """Fetch an OGD dataset's data with codes resolved to German labels, formatted "label <code>".
         dataset_id is the Statistik Austria dataset identifier (e.g. "OGD_vpi86_VPI_1986_1").
         "aggregate" names the dimensions in which a row is a total of other rows; never sum it with them.
@@ -150,6 +150,7 @@ async def fetch_dataset_csv(dataset_id: str, offset: int = 0, limit: int = 1000)
                 df["aggregate"] = ""
             df = df.rename(columns=names)
             limit = max(1, min(limit, 5000))
+            offset = max(0, offset)
             rows = df.iloc[offset:offset + limit].to_dict(orient="records")
             size = len(json.dumps(rows, ensure_ascii=False).encode())
             if size > PAGE_BUDGET:
