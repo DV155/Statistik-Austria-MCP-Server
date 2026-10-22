@@ -110,14 +110,12 @@ async def fetch_dataset_json(dataset_id: str) -> dict:
 
 @mcp.tool()
 async def fetch_dataset_csv(dataset_id: str, offset: int = 0, limit: int = 1000) -> dict: #TODO: Fix tool breaking on zip 
-        """Fetch an OGD dataset's data with coded values resolved to human-readable German labels.
+        """Fetch an OGD dataset's data with codes resolved to German labels, formatted "label <code>".
         dataset_id is the Statistik Austria dataset identifier (e.g. "OGD_vpi86_VPI_2020_1").
-        Each row has an "aggregate" field naming the dimensions in which that row is a parent 
-        of other rows in the result, per the classification hierarchy (empty = no such link).
-        Never sum a row with the rows it totals. An empty "aggregate" does NOT guarantee rows can be summed:
-        some datasets contain parallel groupings (e.g. VPI "Sonderaggregate") that overlap the main hierarchy.
-        Returns at most `limit` rows starting at `offset` (default 1000, max 5000). 
-        If "truncated" is true, call again with offset = offset + returned to get the next page.
+        "aggregate" names the dimensions in which a row is a total of other rows; never sum it with them.
+        Empty "aggregate" does not guarantee rows can be summed (overlapping groupings exist, e.g. VPI).
+        Dimensions in "unlabeled_dimensions" have raw codes and no aggregate information.
+        Pages: at most `limit` rows (max 5000, fewer if rows are large); if "truncated", continue at offset + returned.
         """
         url_json = f"/data/{dataset_id}.json"
         url_csv = f"/data/{dataset_id}.csv"
@@ -133,10 +131,16 @@ async def fetch_dataset_csv(dataset_id: str, offset: int = 0, limit: int = 1000)
             if df.empty:
                 return {"total_rows": 0, "rows": [], "note": "The dataset file contains no data rows."}
             flags = {}
+            unlabeled = []
             for d in dimension:
                 code = d["code"]
-                midcsv = await client.get(f"/data/{dataset_id}_{code}.csv")
-                cdf = pd.read_csv(io.StringIO(decode(midcsv.content)), sep=";", decimal=",", keep_default_na=False, na_values=[""])
+                try:
+                    midcsv = await client.get(f"/data/{dataset_id}_{code}.csv")
+                    midcsv.raise_for_status
+                    cdf = pd.read_csv(io.StringIO(decode(midcsv.content)), sep=";", decimal=",", keep_default_na=False, na_values=[""])
+                except Exception as e:
+                    unlabeled.append({"dimension": names[code], "reason": str(e).splitlines()[0]})
+                    continue
                 flags[names[code]] = df[code].astype(str).isin(drop_agg(df, code, cdf))
                 labels = {c: " ".join(str(n).split()) for c, n in zip(cdf.iloc[:, 0], cdf.iloc[:, 1])}
                 df[code] = df[code].map(lambda c: f"{labels.get(c, c)} <{c}>")
