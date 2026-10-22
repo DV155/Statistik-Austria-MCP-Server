@@ -123,8 +123,8 @@ async def fetch_dataset_csv(dataset_id: str, offset: int = 0, limit: int = 1000)
         try:
             resp.raise_for_status()
             resp_json = await client.get(url_json)
-            resp_json.raise_for_status
-            raw_text = json.loads(resp_json.content)
+            resp_json.raise_for_status()
+            raw_text = json.loads(decode(resp_json.content))
             dimension, measure = parse_att(raw_text["extras"]["attribute_description"])
             names = unique_name(dimension + measure)
             df = pd.read_csv(io.StringIO(decode(resp.content)), sep=";", decimal = ",", keep_default_na=False, na_values=[""])
@@ -136,7 +136,7 @@ async def fetch_dataset_csv(dataset_id: str, offset: int = 0, limit: int = 1000)
                 code = d["code"]
                 try:
                     midcsv = await client.get(f"/data/{dataset_id}_{code}.csv")
-                    midcsv.raise_for_status
+                    midcsv.raise_for_status()
                     cdf = pd.read_csv(io.StringIO(decode(midcsv.content)), sep=";", decimal=",", keep_default_na=False, na_values=[""])
                 except Exception as e:
                     unlabeled.append({"dimension": names[code], "reason": str(e).splitlines()[0]})
@@ -144,11 +144,14 @@ async def fetch_dataset_csv(dataset_id: str, offset: int = 0, limit: int = 1000)
                 flags[names[code]] = df[code].astype(str).isin(drop_agg(df, code, cdf))
                 labels = {c: " ".join(str(n).split()) for c, n in zip(cdf.iloc[:, 0], cdf.iloc[:, 1])}
                 df[code] = df[code].map(lambda c: f"{labels.get(c, c)} <{c}>")
-            flag_df = pd.DataFrame(flags)
-            df["aggregate"] = flag_df.apply(lambda row: "; ".join(row.index[row]), axis=1)
+            flag_df = pd.DataFrame(flags, index=df.index)
+            if flags:
+                df["aggregate"] = flag_df.apply(lambda row: "; ".join(row.index[row]), axis=1)
+            else:
+                df["aggregate"] = ""
             df = df.rename(columns=names)
             limit = max(1, min(limit, 5000))
-            page = df.iloc[offset:offset + limit].to_dict(orient="records")
+            rows = df.iloc[offset:offset + limit].to_dict(orient="records")
             size = len(json.dumps(rows, ensure_ascii=False).encode())
             if size > PAGE_BUDGET:
                 rows = rows[:max(1, int(len(rows) * PAGE_BUDGET / size))]
@@ -157,6 +160,7 @@ async def fetch_dataset_csv(dataset_id: str, offset: int = 0, limit: int = 1000)
                     "offset": offset,
                     "returned": len(rows),
                     "truncated": offset + len(rows) < len(df),
+                    "unlabeled_dimensions": unlabeled,
                     "rows": rows}
         except Exception as e:
             return {"error": str(e)}
