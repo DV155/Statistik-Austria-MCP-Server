@@ -111,8 +111,10 @@ async def fetch_dataset_json(dataset_id: str) -> dict:
 async def fetch_dataset_csv(dataset_id: str, offset: int = 0, limit: int = 1000) -> dict: #TODO: Fix tool breaking on zip 
         """Fetch an OGD dataset's data with coded values resolved to human-readable German labels.
         dataset_id is the Statistik Austria dataset identifier (e.g. "OGD_vpi86_VPI_2020_1").
-        Values are formatted as "label <code>". Each row has an "aggregate" field naming the dimensions in which that row is a total of other rows
-        in the result (empty = detail row). Never sum a row with the rows it totals. 
+        Each row has an "aggregate" field naming the dimensions in which that row is a parent 
+        of other rows in the result, per the classification hierarchy (empty = no such link).
+        Never sum a row with the rows it totals. An empty "aggregate" does NOT guarantee rows can be summed:
+        some datasets contain parallel groupings (e.g. VPI "Sonderaggregate") that overlap the main hierarchy.
         Returns at most `limit` rows starting at `offset` (default 1000, max 5000). 
         If "truncated" is true, call again with offset = offset + returned to get the next page.
         """
