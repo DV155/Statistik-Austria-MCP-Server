@@ -96,7 +96,7 @@ def get_catalog() -> str:
 @mcp.tool()
 async def fetch_dataset_json(dataset_id: str) -> dict:
         """Return the dimension and measure metadata for an OGD dataset. 
-        dataset_id is the Statistik Austria dataset identifier (e.g. "OGD_vpi86_VPI_2020_1").
+        dataset_id is the Statistik Austria dataset identifier (e.g. "OGD_vpi86_VPI_1986_1").
         """
         url = f"/data/{dataset_id}.json"
         try:
@@ -111,7 +111,7 @@ async def fetch_dataset_json(dataset_id: str) -> dict:
 @mcp.tool()
 async def fetch_dataset_csv(dataset_id: str, offset: int = 0, limit: int = 1000) -> dict: #TODO: Fix tool breaking on zip 
         """Fetch an OGD dataset's data with codes resolved to German labels, formatted "label <code>".
-        dataset_id is the Statistik Austria dataset identifier (e.g. "OGD_vpi86_VPI_2020_1").
+        dataset_id is the Statistik Austria dataset identifier (e.g. "OGD_vpi86_VPI_1986_1").
         "aggregate" names the dimensions in which a row is a total of other rows; never sum it with them.
         Empty "aggregate" does not guarantee rows can be summed (overlapping groupings exist, e.g. VPI).
         Dimensions in "unlabeled_dimensions" have raw codes and no aggregate information.
