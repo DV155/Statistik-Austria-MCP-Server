@@ -121,7 +121,9 @@ async def fetch_dataset_csv(dataset_id: str, offset: int = 0, limit: int = 1000)
         resp = (await client.get(url_csv))
         try:
             resp.raise_for_status()
-            raw_text = json.loads(decode((await client.get(url_json)).content))
+            resp_json = await client.get(url_json)
+            resp_json.raise_for_status
+            raw_text = json.loads(resp_json.content)
             dimension, measure = parse_att(raw_text["extras"]["attribute_description"])
             names = unique_name(dimension + measure)
             df = pd.read_csv(io.StringIO(decode(resp.content)), sep=";", decimal = ",", keep_default_na=False, na_values=[""])
