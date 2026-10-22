@@ -118,8 +118,8 @@ async def fetch_dataset_csv(dataset_id: str, offset: int = 0, limit: int = 1000)
         """
         url_json = f"/data/{dataset_id}.json"
         url_csv = f"/data/{dataset_id}.csv"
-        resp = (await client.get(url_csv))
         try:
+            resp = (await client.get(url_csv))
             resp.raise_for_status()
             resp_json = await client.get(url_json)
             resp_json.raise_for_status()
