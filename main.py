@@ -52,7 +52,6 @@ def drop_agg(df: pd.DataFrame, column: str, cdf: pd.DataFrame) -> set[str]: #hel
         return set()
     present = set(df[column].astype(str))
     children = cdf.dropna(subset=["FK"])
-    covered = set(children.loc[children["code"].astype(str).isin(present), "FK"].astype(str))
     return set(children.loc[children["code"].astype(str).isin(present), "FK"].astype(str))
 
 def unique_name(column: list[dict]) -> dict: #helper function which appends code of duplicate labels
