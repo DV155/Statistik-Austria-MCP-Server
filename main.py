@@ -1,4 +1,5 @@
 from typing import Any
+from cachetools import TTLCache
 import re
 import io
 import json
@@ -13,6 +14,7 @@ DATA_BASE = "https://data.statistik.gv.at"
 client = httpx2.AsyncClient(base_url=DATA_BASE, timeout=30, headers={"Accept-Language": "en"})
 ROW_RE = re.compile(r'meta\.jsp\?dataset=([^"&]+)"[^>]*>([^<]+)</a></h4>\s*<p>([^<]*)</p>')
 PAGE_BUDGET = 250000
+cache = TTLCache(maxsize=200000000, ttl=3600, getsizeof=lambda resp: len(resp.content))  #max 200 MB/1 hour
 
 def norm(s: str) -> str: #helper function to convert german-specific letters to common latin alternatives
     s = s.lower()
@@ -67,6 +69,15 @@ def unique_name(column: list[dict]) -> dict: #helper function which appends code
         used.add(label)
         names[c["code"]] = label
     return names
+
+async def cache_get(url:str): #helper function that remembers successful responses
+    if url in cache:
+        return cache[url]
+    resp = await client.get(url)
+    if resp.status_code == 200 and len(resp.content) <= cache.maxsize:
+        cache[url] = resp
+    return resp
+
          
 
 @mcp.resource("ogd://catalog") 
