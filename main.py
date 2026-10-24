@@ -130,9 +130,9 @@ async def fetch_dataset_csv(dataset_id: str, offset: int = 0, limit: int = 1000)
         url_json = f"/data/{dataset_id}.json"
         url_csv = f"/data/{dataset_id}.csv"
         try:
-            resp = (await client.get(url_csv))
+            resp = (await cache_get(url_csv))
             resp.raise_for_status()
-            resp_json = await client.get(url_json)
+            resp_json = await cache_get(url_json)
             resp_json.raise_for_status()
             raw_text = json.loads(decode(resp_json.content))
             dimension, measure = parse_att(raw_text["extras"]["attribute_description"])
@@ -145,7 +145,7 @@ async def fetch_dataset_csv(dataset_id: str, offset: int = 0, limit: int = 1000)
             for d in dimension:
                 code = d["code"]
                 try:
-                    midcsv = await client.get(f"/data/{dataset_id}_{code}.csv")
+                    midcsv = await cache_get(f"/data/{dataset_id}_{code}.csv")
                     midcsv.raise_for_status()
                     cdf = pd.read_csv(io.StringIO(decode(midcsv.content)), sep=";", decimal=",", keep_default_na=False, na_values=[""])
                 except Exception as e:
