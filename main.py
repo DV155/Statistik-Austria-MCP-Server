@@ -183,7 +183,7 @@ async def search_dataset(query: str = "", limit: int = 20) -> dict: #TODO: Bring
   Pass a result's "id" to fetch_dataset_json or fetch_dataset_csv.
     """
     try:
-        resp = await client.get("/web/catalog.jsp")
+        resp = await cache_get("/web/catalog.jsp")
         resp.raise_for_status()
         entries = parse_html(resp.text)
     except Exception as e:
