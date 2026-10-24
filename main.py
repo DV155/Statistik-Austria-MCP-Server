@@ -78,6 +78,19 @@ async def cache_get(url:str): #helper function that remembers successful respons
         cache[url] = resp
     return resp
 
+async def reason_unsupported(dataset_id: str) -> str | None: #helperthat gives reason why dataset has no standard CSV
+    resp = await cache_get(f"/data/{dataset_id}.json")
+    if resp.status_code != 200:
+        return None
+    resources = json.loads(decode(resp.content)).get("resources", [])
+    main = next((r for r in resources if str(r.get("main_resource")).lower() == "true"), None)
+    if main is None or main.get("url", "").endswith(f"{dataset_id}.csv"):
+        return None
+    kind = main.get("format", "").lower() or "an unknown format"
+    if main.get("url", "").lower().endswith(".zip") and kind != "zip":
+        kind += " inside a zip archive"
+    return (f"This dataset's data is published as {kind}, not as a standard CSV table, "
+            f"so this server can't load it. Details: https://data.statistik.gv.at/web/meta.jsp?dataset={dataset_id}")
          
 
 @mcp.resource("ogd://catalog") 
@@ -114,6 +127,10 @@ async def fetch_dataset_json(dataset_id: str) -> dict:
             resp.raise_for_status()
             raw =  json.loads(decode(resp.content)) 
             dimension, measure = parse_att(raw["extras"]["attribute_description"])
+            if not dimension:
+                reason = await reason_unsupported(dataset_id)
+                if reason:
+                    return {"error": reason}
             return {"dimension":dimension, "measure": measure}
         except Exception as e:
             return {"error": str(e)}
@@ -131,6 +148,10 @@ async def fetch_dataset_csv(dataset_id: str, offset: int = 0, limit: int = 1000)
         url_csv = f"/data/{dataset_id}.csv"
         try:
             resp = (await cache_get(url_csv))
+            if resp.status_code == 404:
+                reason = await reason_unsupported(dataset_id)
+                if reason:
+                    return {"error": reason}
             resp.raise_for_status()
             resp_json = await cache_get(url_json)
             resp_json.raise_for_status()
