@@ -8,6 +8,7 @@ from html import unescape
 
 import httpx2
 from mcp.server import MCPServer
+from mcp.server.mcpserver.exceptions import ToolError
 
 mcp = MCPServer("statistik-austria")
 DATA_BASE = "https://data.statistik.gv.at"
