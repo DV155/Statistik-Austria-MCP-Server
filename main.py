@@ -221,6 +221,9 @@ async def search_dataset(query: str = "", limit: int = 20) -> dict: #TODO: Bring
     for word in norm(query).split():
         if len(word) >= 3:
             words.append(word)
+    if query.strip() and not words:
+        return {"query": query, "total_matches": 0, "returned": 0, "results": [],
+                "hint": "All query words are shorter than 3 characters; use longer keywords."}
 
     matches = []
     for entry in entries:
