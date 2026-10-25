@@ -256,7 +256,8 @@ async def search_dataset(query: str = "", limit: int = 20) -> dict: #TODO: Bring
         answer["hint"] = "No matches. Try alternative keywords?"
     return answer
 
-
+def main():
+    mcp.run(transport="stdio")
 
 if __name__ == "__main__":
-    mcp.run(transport="stdio")
+    main()
