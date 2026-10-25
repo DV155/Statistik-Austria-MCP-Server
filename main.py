@@ -183,7 +183,8 @@ async def fetch_dataset_csv(dataset_id: str, offset: int = 0, limit: int = 1000)
             df = df.rename(columns=names)
             limit = max(1, min(limit, 5000))
             offset = max(0, offset)
-            rows = df.iloc[offset:offset + limit].to_dict(orient="records")
+            rows = [{k: None if isinstance(v, float) and v != v else v for k, v in r.items()}
+        for r in df.iloc[offset:offset + limit].to_dict(orient="records")]
             size = len(json.dumps(rows, ensure_ascii=False).encode())
             if size > PAGE_BUDGET:
                 rows = rows[:max(1, int(len(rows) * PAGE_BUDGET / size))]
