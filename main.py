@@ -213,10 +213,10 @@ async def search_dataset(query: str = "", limit: int = 20) -> dict: #TODO: Bring
         resp = await cache_get("/web/catalog.jsp")
         resp.raise_for_status()
         entries = parse_html(resp.text)
-    except Exception as e:
-        return {"error": str(e)}
+    except httpx2.HTTPError as e:
+        raise ToolError(f"Could not load the catalog page: {e}") from e
     if not entries:
-         return {"error": "Catalog page loaded but no datasets could be parsed; the page structure may have changed"}
+        raise ToolError("Catalog page loaded but no datasets could be parsed; the page structure may have changed")
     
     unique = {}
     for entry in entries:
