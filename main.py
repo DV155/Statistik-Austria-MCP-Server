@@ -3,6 +3,7 @@ import re
 import io
 import json
 import pandas as pd
+import numpy as np
 from html import unescape
 
 import httpx2
@@ -14,6 +15,7 @@ DATA_BASE = "https://data.statistik.gv.at"
 client = httpx2.AsyncClient(base_url=DATA_BASE, timeout=30, headers={"Accept-Language": "en"})
 ROW_RE = re.compile(r'meta\.jsp\?dataset=([^"&]+)"[^>]*>([^<]+)</a></h4>\s*<p>([^<]*)</p>')
 PAGE_BUDGET = 250000
+ID_RE = re.compile(r"[A-Za-z0-9_.\-]+")
 cache = TTLCache(maxsize=200000000, ttl=3600, getsizeof=lambda resp: len(resp.content))  #max 200 MB/1 hour
 
 def norm(s: str) -> str: #helper function to convert german-specific letters to common latin alternatives
@@ -26,7 +28,7 @@ def decode(raw: bytes) -> str: #helper function to avoid decoding errors
      try:
           return raw.decode("utf-8")
      except UnicodeDecodeError:
-          return raw.decode("cp1252")
+          return raw.decode("cp1252", errors="replace")
 
 def newest_year(title: str) -> str: #helper function to get latest year in dataset
     years = re.findall(r"\d{4}", title)
