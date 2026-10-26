@@ -3,7 +3,7 @@ import re
 import io
 import json
 import pandas as pd
-import numpy as np
+import asyncio
 from html import unescape
 
 import httpx2
@@ -54,7 +54,7 @@ def parse_html(html: str) -> list[dict]: #helper function to parse html for the 
 def drop_agg(df: pd.DataFrame, column: str, cdf: pd.DataFrame) -> set[str]: #helper: codes in "column" that are totals of components also present in the data
     if "FK" not in cdf.columns:
         return set()
-    present = set(df[column].astype(str))
+    present = set(df[column].dropna().unique())
     children = cdf.dropna(subset=["FK"])
     return set(children.loc[children["code"].astype(str).isin(present), "FK"].astype(str))
 
@@ -140,13 +140,15 @@ async def fetch_dataset_json(dataset_id: str) -> dict:
             raise ToolError(f"Could not load metadata for {dataset_id}: {type(e).__name__}: {e}") from e
 
 @mcp.tool()
-async def fetch_dataset_csv(dataset_id: str, offset: int = 0, limit: int = 1000) -> dict: #TODO: Fix tool breaking on zip (BINNENWAND?)
+async def fetch_dataset_csv(dataset_id: str, offset: int = 0, limit: int = 1000, filters: dict[str, list[str]] | None = None) -> dict: #TODO: Fix tool breaking on zip (BINNENWAND?)
         """Fetch an OGD dataset's data with codes resolved to German labels, formatted "label <code>".
         dataset_id is the Statistik Austria dataset identifier (e.g. "OGD_vpi86_VPI_1986_1").
         "aggregate" names the dimensions in which a row is a total of other rows; never sum it with them.
         Empty "aggregate" does not guarantee rows can be summed (overlapping groupings exist, e.g. VPI).
         Dimensions in "unlabeled_dimensions" have raw codes and no aggregate information.
-        Pages: at most `limit` rows (max 5000, fewer if rows are large); if "truncated", continue at offset + returned.
+        filters: {dimension code: [value codes]} keeps matching rows, e.g. {"C-A10-0": ["A10-2024"]}; values are the <code> parts.
+        Pages: at most `limit` rows (max 5000, fewer if rows are large); if "truncated", continue at offset + returned
+        with the same filters.
         """
         if not ID_RE.fullmatch(dataset_id):
             raise ToolError(f"Invalid dataset_id {dataset_id!r}; use an id from search_dataset.")
@@ -181,11 +183,15 @@ async def fetch_dataset_csv(dataset_id: str, offset: int = 0, limit: int = 1000)
                 labels = {c: " ".join(str(n).split()) for c, n in zip(cdf.iloc[:, 0], cdf.iloc[:, 1])}
                 df[code] = df[code].map(lambda c: f"{labels.get(c, c)} <{c}>")
             flag_df = pd.DataFrame(flags, index=df.index)
-            if flags:
-                df["aggregate"] = flag_df.apply(lambda row: "; ".join(row.index[row]), axis=1)
-            else:
-                df["aggregate"] = ""
-            df = df.rename(columns=names)
+            if filters:
+                for dim, wanted in filters.items():
+                    if dim not in df.columns or not dim.startswith("C-"):
+                        raise ToolError(f"Unknown dimension {dim!r}; use a dimension code from fetch_dataset_json.")
+                    matching = df[dim].isin(wanted)
+                    if not matching.any():
+                        raise ToolError(f"No rows where {dim} is one of {wanted}; filters take the <code> part of values.")
+                    df = df[matching]
+                    flag_df = flag_df[matching]
             limit = max(1, min(limit, 5000))
             offset = max(0, offset)
             rows = [{k: None if isinstance(v, float) and v != v else v for k, v in r.items()}
@@ -200,8 +206,10 @@ async def fetch_dataset_csv(dataset_id: str, offset: int = 0, limit: int = 1000)
                     "truncated": offset + len(rows) < len(df),
                     "unlabeled_dimensions": unlabeled,
                     "rows": rows}
-        except Exception as e:
-            return {"error": str(e)}
+        except httpx2.TransportError as e:
+            raise ToolError(f"Statistik Austria's server did not respond ({type(e).__name__}); try again in a moment.") from e
+        except (httpx2.HTTPStatusError, ValueError, KeyError) as e:
+            raise ToolError(f"Could not load {dataset_id}: {type(e).__name__}: {e}") from e
 
 @mcp.tool()
 async def search_dataset(query: str = "", limit: int = 20) -> dict: #TODO: Bring back 'category: str = "" '
