@@ -123,19 +123,21 @@ async def fetch_dataset_json(dataset_id: str) -> dict:
         """Return the dimension and measure metadata for an OGD dataset. 
         dataset_id is the Statistik Austria dataset identifier (e.g. "OGD_vpi86_VPI_1986_1").
         """
+        if not ID_RE.fullmatch(dataset_id):
+            raise ToolError(f"Invalid dataset_id {dataset_id!r}; use an id from search_dataset.")
         url = f"/data/{dataset_id}.json"
         try:
-            resp = (await client.get(url))
+            resp = (await cache_get(url))
             resp.raise_for_status()
             raw =  json.loads(decode(resp.content)) 
             dimension, measure = parse_att(raw["extras"]["attribute_description"])
             if not dimension:
                 reason = await reason_unsupported(dataset_id)
                 if reason:
-                    return {"error": reason}
+                    raise ToolError(reason)
             return {"dimension":dimension, "measure": measure}
-        except Exception as e:
-            return {"error": str(e)}
+        except (httpx2.HTTPError, ValueError, KeyError) as e:
+            raise ToolError(f"Could not load metadata for {dataset_id}: {type(e).__name__}: {e}") from e
 
 @mcp.tool()
 async def fetch_dataset_csv(dataset_id: str, offset: int = 0, limit: int = 1000) -> dict: #TODO: Fix tool breaking on zip (BINNENWAND?)
