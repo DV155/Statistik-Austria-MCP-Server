@@ -205,7 +205,7 @@ async def fetch_dataset_csv(dataset_id: str, offset: int = 0, limit: int = 1000)
 
 @mcp.tool()
 async def search_dataset(query: str = "", limit: int = 20) -> dict: #TODO: Bring back 'category: str = "" '
-    """Search the OGD catalog by keyword. Every query word
+    """Search the OGD catalog by keyword. Every query word of 3+ characters
   must appear in a result; word parts match too. An empty query returns recently updated datasets.
   Pass a result's "id" to fetch_dataset_json or fetch_dataset_csv.
     """
