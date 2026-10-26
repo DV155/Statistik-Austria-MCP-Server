@@ -1,4 +1,3 @@
-from typing import Any
 from cachetools import TTLCache
 import re
 import io
