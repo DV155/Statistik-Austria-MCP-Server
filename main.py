@@ -148,21 +148,22 @@ async def fetch_dataset_csv(dataset_id: str, offset: int = 0, limit: int = 1000)
         Dimensions in "unlabeled_dimensions" have raw codes and no aggregate information.
         Pages: at most `limit` rows (max 5000, fewer if rows are large); if "truncated", continue at offset + returned.
         """
+        if not ID_RE.fullmatch(dataset_id):
+            raise ToolError(f"Invalid dataset_id {dataset_id!r}; use an id from search_dataset.")
         url_json = f"/data/{dataset_id}.json"
         url_csv = f"/data/{dataset_id}.csv"
         try:
             resp = (await cache_get(url_csv))
             if resp.status_code == 404:
                 reason = await reason_unsupported(dataset_id)
-                if reason:
-                    return {"error": reason}
+                raise ToolError(reason or f"No data file for {dataset_id!r}; check the id with search_dataset.")
             resp.raise_for_status()
             resp_json = await cache_get(url_json)
             resp_json.raise_for_status()
             raw_text = json.loads(decode(resp_json.content))
             dimension, measure = parse_att(raw_text["extras"]["attribute_description"])
             names = unique_name(dimension + measure)
-            df = pd.read_csv(io.StringIO(decode(resp.content)), sep=";", decimal = ",", keep_default_na=False, na_values=[""])
+            df = pd.read_csv(io.StringIO(decode(resp.content)), sep=";", decimal = ",", dtype={d["code"]: str for d in dimension}, keep_default_na=False, na_values=[""])
             if df.empty:
                 return {"total_rows": 0, "rows": [], "note": "The dataset file contains no data rows."}
             flags = {}
