@@ -3,7 +3,6 @@ import re
 import io
 import json
 import pandas as pd
-import asyncio
 from html import unescape
 
 import httpx2
@@ -169,19 +168,29 @@ async def fetch_dataset_csv(dataset_id: str, offset: int = 0, limit: int = 1000,
             if df.empty:
                 return {"total_rows": 0, "rows": [], "note": "The dataset file contains no data rows."}
             flags = {}
+            labels = {}
             unlabeled = []
             for d in dimension:
                 code = d["code"]
-                try:
-                    midcsv = await cache_get(f"/data/{dataset_id}_{code}.csv")
-                    midcsv.raise_for_status()
-                    cdf = pd.read_csv(io.StringIO(decode(midcsv.content)), sep=";", decimal=",", keep_default_na=False, na_values=[""])
-                except Exception as e:
-                    unlabeled.append({"dimension": names[code], "reason": str(e).splitlines()[0]})
+                midcsv = await cache_get(f"/data/{dataset_id}_{code}.csv")
+                if midcsv.status_code == 404:
+                    unlabeled.append({"dimension": names[code], "reason": "no classification file"})
                     continue
-                flags[names[code]] = df[code].astype(str).isin(drop_agg(df, code, cdf))
-                labels = {c: " ".join(str(n).split()) for c, n in zip(cdf.iloc[:, 0], cdf.iloc[:, 1])}
-                df[code] = df[code].map(lambda c: f"{labels.get(c, c)} <{c}>")
+                midcsv.raise_for_status()
+                try:
+                    cdf = pd.read_csv(io.StringIO(decode(midcsv.content)), sep=";", dtype=str, keep_default_na=False, na_values=[""])
+                    agg = df[code].isin(drop_agg(df, code, cdf))
+                    lab = {}
+                    for c, n in zip(cdf.iloc[:, 0], cdf.iloc[:, 1]):
+                        if isinstance(n, str) and n.strip():
+                            lab[c] = " ".join(n.split())
+                        else:
+                            lab[c] = c
+                except Exception as e:
+                    unlabeled.append({"dimension": names[code], "reason": f"{type(e).__name__}: {e}"})
+                    continue
+                flags[names[code]] = agg
+                labels[code] = lab
             flag_df = pd.DataFrame(flags, index=df.index)
             if filters:
                 for dim, wanted in filters.items():
@@ -194,8 +203,19 @@ async def fetch_dataset_csv(dataset_id: str, offset: int = 0, limit: int = 1000,
                     flag_df = flag_df[matching]
             limit = max(1, min(limit, 5000))
             offset = max(0, offset)
-            rows = [{k: None if isinstance(v, float) and v != v else v for k, v in r.items()}
-        for r in df.iloc[offset:offset + limit].to_dict(orient="records")]
+            page = df.iloc[offset:offset + limit].copy()
+            for code, lab in labels.items():
+                page[code] = page[code].map(lab).fillna(page[code]) + " <" + page[code] + ">"
+            page["aggregate"] = ""
+            for name in flag_df.columns:
+                is_total = flag_df[name].iloc[offset:offset + limit].to_numpy()
+                page.loc[is_total, "aggregate"] += "; " + name
+            page["aggregate"] = page["aggregate"].str.removeprefix("; ")
+            rows = page.rename(columns=names).to_dict(orient="records")
+            for row in rows:
+                for key, value in row.items():
+                    if pd.isna(value):
+                        row[key] = None
             size = len(json.dumps(rows, ensure_ascii=False).encode())
             if size > PAGE_BUDGET:
                 rows = rows[:max(1, int(len(rows) * PAGE_BUDGET / size))]
