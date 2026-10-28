@@ -1,22 +1,35 @@
 [project]
-name = "statserver"
+name = "statistik-austria-mcp"
 version = "0.1.0"
-description = "Add your description here"
+description = "MCP server that gives AI assistants access to Statistik Austria's open data portal"
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [
     { name = "DV155", email = "dan.vasilkovskiy@gmail.com" }
 ]
-requires-python = ">=3.14"
+requires-python = ">=3.13"
 dependencies = [
     "cachetools>=7.2.4",
-    "httpx>=0.28.1",
-    "mcp[cli]>=2.1.1",
+    "httpx2>=2.12.0",
+    "mcp>=2.1.1,<3",
     "pandas>=3.0.6",
 ]
 
+[project.urls]
+Repository = "https://github.com/DV155/Statistik-Austria-MCP-Server"
+
 [project.scripts]
-statserver = "statserver:main"
+statistik-austria-mcp = "statserver.server:main"
+
+[dependency-groups]
+dev = [
+    "mcp[cli]>=2.1.1,<3",
+]
 
 [build-system]
 requires = ["uv_build>=0.12.6,<0.13.0"]
 build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "statserver"
