@@ -6,8 +6,9 @@ readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
 authors = [
-    { name = "DV155", email = "dan.vasilkovskiy@gmail.com" }
+    { name = "Daniil Vasilcovschii", email = "dan.vasilkovskiy@gmail.com" }
 ]
+keywords = ["mcp", "model-context-protocol", "statistik-austria", "open-data", "ogd", "austria"]
 requires-python = ">=3.13"
 dependencies = [
     "cachetools>=7.2.4",
