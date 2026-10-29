@@ -1,0 +1,22 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.DV155/Statistik-Austria-MCP-Server",
+  "description": "Search and query Statistik Austria open data (OGD) with codes resolved to readable labels.",
+  "repository": {
+    "url": "https://github.com/DV155/statistik-austria-mcp",
+    "source": "github",
+    "id": "1362802020"
+  },
+  "version": "1.0.0",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "statistik-austria-mcp",
+      "version": "1.0.0",
+      "runtimeHint": "uvx",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}

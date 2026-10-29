@@ -1,6 +1,6 @@
 [project]
 name = "statistik-austria-mcp"
-version = "0.1.0"
+version = "1.0.0"
 description = "MCP server that gives AI assistants access to Statistik Austria's open data portal"
 readme = "README.md"
 license = "MIT"
