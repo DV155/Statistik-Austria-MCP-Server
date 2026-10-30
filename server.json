@@ -1,9 +1,9 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.DV155/Statistik-Austria-MCP-Server",
+  "name": "io.github.DV155/statistik-austria-mcp",
   "description": "Search and query Statistik Austria open data (OGD) with codes resolved to readable labels.",
   "repository": {
-    "url": "https://github.com/DV155/statistik-austria-mcp",
+    "url": "https://github.com/DV155/Statistik-Austria-MCP-Server",
     "source": "github",
     "id": "1362802020"
   },

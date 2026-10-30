@@ -41,6 +41,9 @@
   </ol>
 </details>
 
+<a id="readme-top"></a>
+<!-- mcp-name: io.github.DV155/statistik-austria-mcp -->
+
 
 
 <!-- ABOUT THE PROJECT -->
