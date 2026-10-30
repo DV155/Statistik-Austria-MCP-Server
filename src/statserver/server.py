@@ -232,11 +232,14 @@ async def fetch_dataset_csv(dataset_id: str, offset: int = 0, limit: int = 1000,
             raise ToolError(f"Could not load {dataset_id}: {type(e).__name__}: {e}") from e
 
 @mcp.tool()
-async def search_dataset(query: str = "", limit: int = 20) -> dict: #TODO: Bring back 'category: str = "" '
-    """Search the OGD catalog by keyword. Every query word of 3+ characters
+async def search_dataset(query: str = "", limit: int = 20, offset: int = 0, match_all: bool = True) -> dict: #TODO: Bring back 'category: str = "" '
+    """Search the OGD catalog by keyword. By default every query word of 3+ characters
   must appear in a result; word parts match too. An empty query returns recently updated datasets.
   Titles are in German, so search with German keywords (e.g. "Bevölkerung", not "population").
-  Pass a result's "id" to fetch_dataset_json or fetch_dataset_csv.
+  Pass a result's "id" to fetch_dataset_json or fetch_dataset_csv. Some datasets aren't standard CSV tables; fetch_dataset_csv then explains why it can't load them.
+  Pages: at most `limit` results (max 50); if "truncated", continue at offset + returned.
+  Setting match_all=False returns datasets containing any query word, best matches first.
+  
     """
     try:
         resp = await cache_get("/web/catalog.jsp")
@@ -252,6 +255,7 @@ async def search_dataset(query: str = "", limit: int = 20) -> dict: #TODO: Bring
         unique[entry["id"]] = entry
     entries = list(unique.values())
     limit = max(1, min(limit, 50))
+    offset = max(0, offset)
     words = []
     for word in norm(query).split():
         if len(word) >= 3:
@@ -271,16 +275,16 @@ async def search_dataset(query: str = "", limit: int = 20) -> dict: #TODO: Bring
                    score += 3
               elif word in rest:
                    score += 1
-              else:
+              elif match_all:
                    all_found = False
                    break
-        if all_found:
+        if all_found and (score > 0 or not words):
             matches.append((score, entry))
     if words:
         matches.sort(key=lambda pair: (pair[0], newest_year(pair[1]["title"])), reverse=True)
 
     results = []
-    for score, entry in matches[:limit]:
+    for score, entry in matches[offset:offset + limit]:
         item = {"id": entry["id"], "title": entry["title"]}
         desc = entry["desc"]
         if desc and desc != entry["title"]:
@@ -289,7 +293,9 @@ async def search_dataset(query: str = "", limit: int = 20) -> dict: #TODO: Bring
             item["desc"] = desc
         results.append(item)
 
-    answer = {"query": query, "total_matches": len(matches), "returned": len(results), "results": results}     
+    answer = {"query": query, "total_matches": len(matches), "returned": len(results), "truncated": offset + len(results) < len(matches), "results": results}     
+    if not match_all:
+        answer["hint"] = "Titles don't list every breakdown (e.g. by region); check candidates' dimensions with fetch_dataset_json before concluding data doesn't exist."
     if not matches:
         answer["hint"] = "No matches. Try alternative keywords?"
     return answer
